@@ -27,21 +27,6 @@ def rgb_from_string(color_string):
     blue = (float(int(color_string[5],16) * 16) + float(int(color_string[6],16))) / 255.0
     return (red,green,blue)
 
-def equal_lists(list1,list2):
-    # Checks to see if both lists are equal
-    # Pre: Two lists to check
-    # Post: Returns true if lists are identical, false otherwise.
-    len1 = len(list1)
-    if (len1 == len(list2)):
-        answer = True
-        for i in range(0,len1,1):
-            if (list1[i] != list2[i]):
-                answer = False;
-                break;
-    else:
-        answer = False
-    return answer
-
 class CustomCheckButton(Gtk.CheckButton):
     def __init__(self,button_label):
         Gtk.CheckButton.__init__(self,label=button_label)
@@ -249,10 +234,6 @@ class App:
         # Pre: Uses the branches currently listed in self.branches, and removes all all buttons in
         #      self.branches_checkbuttons, and packs the buttons in self.button_box
         # Post: Buttons on GUI will corespond to branches
-        if len(self.branches_checkbuttons) > 0:
-            for button in self.branches_checkbuttons:
-                self.button_box.remove(self.branches_checkbuttons[i])
-            self.branches_checkbuttons = []
         for branch in self.branches:
             temp = CustomCheckButton(branch)
             temp.set_active(True)
@@ -267,10 +248,34 @@ class App:
     def reload_button_method(self, button):
         # Reloads buttons and graph
         temp_branches = self.repo.listall_branches()
-        if (equal_lists(temp_branches,self.branches) == False):
-            self.branches = temp_branches
-            self.SetupBranchesCheckButtons()
+
+        # Checking and removing any removed branches
+        for branch in self.branches:
+            if branch not in temp_branches:
+                i = 0;
+                while (i < len(self.branches_checkbuttons)):
+                    if (self.branches_checkbuttons[i].button_label == branch):
+                        temp = self.branches_checkbuttons.pop(i)
+                        self.button_box.remove(temp)
+                        break
+                    else:
+                        i += 1
+                self.branches.remove(branch)
+
+        # Checking and adding any new branches
+        for branch in temp_branches:
+            if branch not in self.branches:
+                self.branches.append(branch)
+                temp = CustomCheckButton(branch)
+                temp.set_active(True)
+                temp.connect("toggled",self.checkbutton_draw_objects_toggled_method)
+                self.button_box.pack_start(temp,False,False,0)
+                temp.show()
+                self.branches_checkbuttons.append(temp)
+                
+        # Drawing Graph
         self.CreateGraph()
+        
         
     def on_drawing_area_button_press_event(self, widget, event):
         # Called when draw area is clicked.
